@@ -20,10 +20,10 @@
 		<!-- <property name="url"
 			value="jdbc:mysql://localhost:3306/express?useUnicode=true&amp;characterEncoding=utf-8"> -->
 				<property name="url"
-			value="jdbc:mysql://db4free.net:3306/chinesejie">
+			value="jdbc:mysql://w.rdc.sae.sina.com.cn:3307/app_homesexpress">
 		</property>
-		<property name="username" value="chinesejie"></property>
-		<property name="password" value="adminadmin"></property>
+		<property name="username" value="oo1omxlkzo"></property>
+		<property name="password" value="xk42wh12m21mm4mz0wmk01wj4333z3z03xwlw2ix"></property>
 		<property name="maxWait"            value="1000" />
         <property name="initialSize"        value="5" />
         <property name="maxActive"          value="20" />

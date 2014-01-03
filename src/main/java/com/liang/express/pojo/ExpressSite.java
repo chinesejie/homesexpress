@@ -1,5 +1,6 @@
 package com.liang.express.pojo;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +12,7 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "ExpressSite")
-public class ExpressSite {
+public class ExpressSite implements Serializable{
 	private String address;
 	private Set<ExpressOrder> lastOrders = new HashSet<ExpressOrder>();
 	private String name;

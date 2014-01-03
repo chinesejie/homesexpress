@@ -1,5 +1,6 @@
 package com.liang.express.pojo;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +12,7 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "ExpressCustomer")
-public class ExpressCustomer {
+public class ExpressCustomer implements Serializable{
 	private long cid;
 	private String name;
 	private String password;
