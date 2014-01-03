@@ -59,6 +59,7 @@
 				<value>com.liang.express.pojo.ExpressCustomer</value>
 				<value>com.liang.express.pojo.ExpressOrder</value>
 				<value>com.liang.express.pojo.ExpressSite</value>
+				<value>com.liang.express.pojo.WeixinMessage</value>
 
 			</list>
 		</property>

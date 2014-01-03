@@ -1,6 +1,8 @@
 package com.liang.express.controller;
 
+import java.io.InputStream;
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -11,6 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.input.SAXBuilder;
+import org.jdom.output.XMLOutputter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,10 +25,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.liang.action.SignUtil;
+import com.liang.express.dao.WeixinMessageDao;
 import com.liang.express.pojo.ExpressCustomer;
 import com.liang.express.pojo.ExpressOrder;
+import com.liang.express.pojo.WeixinMessage;
 import com.liang.express.service.CommonService;
 import com.liang.express.service.CustomerService;
+import com.liang.express.service.MessageService;
 import com.liang.express.service.OrderService;
 import com.liang.express.service.SiteService;
 
@@ -304,30 +313,30 @@ public class CustomerAction {
 			// 如果订单不属于这个用户，该用户不能查看
 			return "error";
 		}
-		List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		for (int i = 0; i < eo.getStatus() + 1; i++) {
 			Map<String, Object> m = new HashMap<String, Object>();
 			if (i == 0) {
 				m.put("time", eo.getGetTime());
-				m.put("what", "快件已由"+eo.getOriginSite().getName()+"站点接收");
+				m.put("what", "快件已由" + eo.getOriginSite().getName() + "站点接收");
 			}
 			if (i == 1) {
 				m.put("time", eo.getFlushTime());
-				m.put("what", "快件已从"+eo.getOriginSite().getName()+"出发，发往"+eo.getFinalSite().getName());
+				m.put("what", "快件已从" + eo.getOriginSite().getName() + "出发，发往" + eo.getFinalSite().getName());
 			}
 			if (i == 2) {
 				m.put("time", eo.getArriveTime());
-				m.put("what", "快件已由"+eo.getFinalSite().getName()+"站点揽入");
+				m.put("what", "快件已由" + eo.getFinalSite().getName() + "站点揽入");
 			}
 			if (i == 3) {
 				m.put("time", eo.getSendTime());
-				m.put("what", "快件已由"+eo.getFinalSite().getName()+"站点派送中");
+				m.put("what", "快件已由" + eo.getFinalSite().getName() + "站点派送中");
 			}
 			list.add(m);
 		}
 
 		map.put("transportingOrder", list);
-		map.put("oid", eo.getOid() );
+		map.put("oid", eo.getOid());
 		return "customer/transportingOrder";
 	}
 
@@ -364,34 +373,34 @@ public class CustomerAction {
 			// 如果订单不属于这个用户，该用户不能查看
 			return "error";
 		}
-		List<Map<String,Object>> list = new ArrayList<Map<String,Object>>();
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		for (int i = 0; i < eo.getStatus() + 1; i++) {
 			Map<String, Object> m = new HashMap<String, Object>();
 			if (i == 0) {
 				m.put("time", eo.getGetTime());
-				m.put("what", "快件已由"+eo.getOriginSite().getName()+"站点接收");
+				m.put("what", "快件已由" + eo.getOriginSite().getName() + "站点接收");
 			}
 			if (i == 1) {
 				m.put("time", eo.getFlushTime());
-				m.put("what", "快件已从"+eo.getOriginSite().getName()+"出发，发往"+eo.getFinalSite().getName());
+				m.put("what", "快件已从" + eo.getOriginSite().getName() + "出发，发往" + eo.getFinalSite().getName());
 			}
 			if (i == 2) {
 				m.put("time", eo.getArriveTime());
-				m.put("what", "快件已由"+eo.getFinalSite().getName()+"站点揽入");
+				m.put("what", "快件已由" + eo.getFinalSite().getName() + "站点揽入");
 			}
 			if (i == 3) {
 				m.put("time", eo.getSendTime());
-				m.put("what", "快件已由"+eo.getFinalSite().getName()+"站点派送中");
+				m.put("what", "快件已由" + eo.getFinalSite().getName() + "站点派送中");
 			}
 			if (i == 4) {
 				m.put("time", eo.getSignTime());
-				m.put("what", "快件已由"+eo.getReceiverName()+"签收");
+				m.put("what", "快件已由" + eo.getReceiverName() + "签收");
 			}
 			list.add(m);
 		}
 
 		map.put("transportedOrder", list);
-		map.put("oid", eo.getOid() );
+		map.put("oid", eo.getOid());
 		return "customer/transportedOrder";
 	}
 
@@ -473,11 +482,11 @@ public class CustomerAction {
 			}
 		}
 	}
-	
-	@RequestMapping(value = { "coreServlet.action" },method=RequestMethod.GET)
+
+	@RequestMapping(value = { "coreServlet.action" }, method = RequestMethod.GET)
 	@ResponseBody
-	public String doWeixinGet(HttpServletRequest request,HttpServletResponse response) {
-		
+	public String doWeixinGet(HttpServletRequest request, HttpServletResponse response) {
+
 		// 微信加密签名
 		String signature = request.getParameter("signature");
 		// 时间戳
@@ -490,15 +499,115 @@ public class CustomerAction {
 		// 通过检验signature对请求进行校验，若校验成功则原样返回echostr，表示接入成功，否则接入失败
 		if (SignUtil.checkSignature(signature, timestamp, nonce)) {
 			return echostr;
-		} else{
+		} else {
 			return "idonotknow";
 		}
-		 
-		
+
 	}
-	@RequestMapping(value = { "coreServlet.action" },method=RequestMethod.POST)
+
+	String returnStr = "";
+	String toName = "";
+	String FromName = "";
+	String type = "";
+	String content = "";
+	String con = "";
+	String event = "";// 自定义按钮事件请求
+	String eKey = "";// 事件请求key值
+	@Autowired
+	private MessageService messageService;
+
+	@RequestMapping(value = { "coreServlet.action" }, method = RequestMethod.POST)
 	@ResponseBody
-	public String doWeixinPost() {
-		return null;
+	public String doWeixinPost(HttpServletRequest request, HttpServletResponse response) {
+
+		try {
+			request.setCharacterEncoding("utf-8");
+			response.setContentType("text/plain");
+			response.setCharacterEncoding("utf-8");
+			 
+			InputStream is = request.getInputStream();
+			SAXBuilder sax = new SAXBuilder();
+			Document doc = sax.build(is);
+			WeixinMessage wm = new WeixinMessage();
+			XMLOutputter XMLOut = new XMLOutputter();
+			String in = XMLOut.outputString(doc);
+			wm.setMessage(in);
+			messageService.insert(wm);
+			Element root = doc.getRootElement();
+
+			// 获得根元素的第一级子节点
+			List list = root.getChildren();
+			for (int j = 0; j < list.size(); j++) {
+				// 获得结点
+				Element first = (Element) list.get(j);
+
+				if (first.getName().equals("ToUserName")) {
+					toName = first.getValue().trim();
+				} else if (first.getName().equals("FromUserName")) {
+					FromName = first.getValue().trim();
+				} else if (first.getName().equals("MsgType")) {
+					type = first.getValue().trim();
+				} else if (first.getName().equals("Content")) {
+					con = first.getValue().trim();
+				} else if (first.getName().equals("Event")) {
+					event = first.getValue().trim();
+				} else if (first.getName().equals("EventKey")) {
+					eKey = first.getValue().trim();
+				}
+			}
+			ExpressOrder eo = orderService.getOrderByOid(Long.parseLong(con));
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < eo.getStatus() + 1; i++) {
+
+				if (i == 0) {
+					sb.append(eo.getGetTime() + "\n");
+					sb.append("快件已由" + eo.getOriginSite().getName() + "站点接收" + "\n\n");
+				}
+				if (i == 1) {
+					sb.append(eo.getFlushTime() + "\n");
+					sb.append("快件已从" + eo.getOriginSite().getName() + "出发，发往" + eo.getFinalSite().getName() + "\n\n");
+				}
+				if (i == 2) {
+					sb.append(eo.getArriveTime() + "\n");
+					sb.append("快件已由" + eo.getFinalSite().getName() + "站点揽入" + "\n\n");
+				}
+				if (i == 3) {
+					sb.append(eo.getSendTime() + "\n");
+					sb.append("快件已由" + eo.getFinalSite().getName() + "站点派送中" + "\n\n");
+				}
+				if (i == 4) {
+					sb.append(eo.getSignTime() + "\n");
+					sb.append("快件已由" + eo.getReceiverName() + "签收");
+				}
+
+			}
+			content = sb.toString();
+		} catch (Exception e) {
+			content = "抱歉，订单不存在";
+		}
+		return getBackXMLTypeText(toName, FromName, content);
 	}
+
+	public String getBackXMLTypeText(String toName, String FromName, String content) {
+
+		String returnStr = "";
+		//content = "<![CDATA[" + content + "]]>";
+		SimpleDateFormat format = new SimpleDateFormat("yyyyMMddHHmmss");
+		String times = format.format(new Date());
+
+		Element rootXML = new Element("xml");
+		rootXML.addContent(new Element("ToUserName").setText(FromName));
+		rootXML.addContent(new Element("FromUserName").setText(toName));
+		rootXML.addContent(new Element("CreateTime").setText(times));
+		rootXML.addContent(new Element("MsgType").setText("text"));
+		rootXML.addContent(new Element("Content").setText(content));
+
+		Document doc = new Document(rootXML);
+
+		XMLOutputter XMLOut = new XMLOutputter();
+		returnStr = XMLOut.outputString(doc);
+
+		return returnStr;
+	}
+
 }
